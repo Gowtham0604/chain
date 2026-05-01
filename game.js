@@ -150,7 +150,7 @@ class Ball {
             
             // Floor
             if (ny + BALL_RADIUS > CANNON_Y) {
-                this.y = CANNON_Y; this.vy = 0; this.vx = 0; this.returning = true;
+                this.y = CANNON_Y; this.x = nx; this.vy = 0; this.vx = 0; this.returning = true;
                 if (!firstBallLanded) {
                     firstBallLanded = true;
                     cannonX = Math.max(BALL_RADIUS, Math.min(W - BALL_RADIUS, nx));
@@ -171,14 +171,17 @@ class Ball {
                 const distance = Math.sqrt(distX*distX + distY*distY);
                 
                 if (distance <= BALL_RADIUS) {
-                    hit = true;
+                    // Push out
+                    const pen = BALL_RADIUS - distance + 0.1;
                     if (distance === 0) { this.vy *= -1; ny -= BALL_RADIUS; } // Failsafe
                     else {
-                        // Push out
-                        const pen = BALL_RADIUS - distance + 0.1;
                         nx += (distX/distance) * pen;
                         ny += (distY/distance) * pen;
-                        
+                    }
+                    
+                    // Only bounce and deal damage if the ball is moving TOWARDS the block
+                    const dot = this.vx * distX + this.vy * distY;
+                    if (dot < 0 || distance === 0) {
                         // Bounce
                         if (Math.abs(distX) > Math.abs(distY)) {
                             this.vx *= -1; 
@@ -187,17 +190,19 @@ class Ball {
                             this.vy *= -1; 
                             this.vx += (Math.random()-0.5)*100;
                         }
+                        
+                        const spd = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+                        this.vx = (this.vx / spd) * BALL_SPEED;
+                        this.vy = (this.vy / spd) * BALL_SPEED;
+                        
+                        b.hp--; score++; updateHUD(); b.punch = 0.3;
+                        AudioSys.hit();
+                        spawnParticles(nx, ny, getBlockColor(b.maxHp), 3, 150, 2);
+
+                        if (b.hp <= 0) triggerExplosion(b, 1);
                     }
                     
-                    const spd = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
-                    this.vx = (this.vx / spd) * BALL_SPEED;
-                    this.vy = (this.vy / spd) * BALL_SPEED;
-                    
-                    b.hp--; score++; updateHUD(); b.punch = 0.3;
-                    AudioSys.hit();
-                    spawnParticles(nx, ny, getBlockColor(b.maxHp), 3, 150, 2);
-
-                    if (b.hp <= 0) triggerExplosion(b, 1);
+                    hit = true;
                     break;
                 }
             }
@@ -217,7 +222,8 @@ class Ball {
                 }
             }
 
-            if (!this.returning) { this.x = nx; this.y = ny; }
+            if (!this.returning && !hit) { this.x = nx; this.y = ny; }
+            else if (!this.returning && hit) { this.x = nx; this.y = ny; }
         }
     }
     
