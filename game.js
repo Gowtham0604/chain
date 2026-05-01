@@ -21,9 +21,9 @@ const AudioSys = {
         osc.connect(gain); gain.connect(this.ctx.destination);
         osc.start(); osc.stop(this.ctx.currentTime + duration);
     },
-    merge(comboSize) { 
-        // Pitch goes up with combo size
-        const baseFreq = 300 + (comboSize * 50);
+    swap() { this.playTone(400, 'sine', 0.1, 0.05); },
+    merge(linesCount) { 
+        const baseFreq = 400 + (linesCount * 100);
         this.playTone(baseFreq, 'sine', 0.15, 0.1); 
         setTimeout(() => this.playTone(baseFreq * 1.5, 'square', 0.2, 0.1), 50);
     },
@@ -43,20 +43,21 @@ document.getElementById('toggleAudioBtn').addEventListener('click', (e) => {
 });
 
 // --- Game Constants & State ---
-const COLS = 5;
-const ROWS = 7;
-const PAD = 10;
+const COLS = 6;
+const ROWS = 8;
+const PAD = 8;
 
 let W, H, CW, CH, BOARD_TOP, BOARD_LEFT;
 let dpr = window.devicePixelRatio || 1;
 
 let state = 'MENU'; // MENU, PLAYING, ANIMATING
 let score = 0;
-let bestScore = parseInt(localStorage.getItem('neon_merge_best')) || 0;
+let bestScore = parseInt(localStorage.getItem('neon_match_best')) || 0;
 
-let grid = []; // 2D array [col][row]
+let grid = []; 
 let particles = [];
 let floatingTexts = [];
+let actionQueue = [];
 
 // Camera Shake
 let shakeTime = 0, shakeIntensity = 0;
@@ -69,20 +70,19 @@ function resize() {
     canvas.width = W * dpr; canvas.height = H * dpr;
     ctx.scale(dpr, dpr);
     
-    // Calculate square blocks that fit nicely
     CW = (W - PAD * (COLS + 1)) / COLS;
     CH = CW;
     
     const gridHeight = ROWS * (CH + PAD) - PAD;
-    BOARD_TOP = (H - gridHeight) / 2 + 40; // Push down slightly for HUD
+    BOARD_TOP = (H - gridHeight) / 2 + 30; 
     BOARD_LEFT = PAD;
     
-    // Update existing blocks targets
     for (let c = 0; c < COLS; c++) {
+        if(!grid[c]) continue;
         for (let r = 0; r < ROWS; r++) {
-            if (grid[c] && grid[c][r]) {
+            if (grid[c][r]) {
+                grid[c][r].targetX = getTargetX(c);
                 grid[c][r].targetY = getTargetY(r);
-                grid[c][r].x = getTargetX(c);
             }
         }
     }
@@ -95,19 +95,9 @@ function getTargetY(row) { return BOARD_TOP + row * (CH + PAD); }
 
 function getBlockColor(val) {
     const colors = [
-        '#06b6d4', // 1 Cyan
-        '#3b82f6', // 2 Blue
-        '#6366f1', // 3 Indigo
-        '#8b5cf6', // 4 Purple
-        '#d946ef', // 5 Fuchsia
-        '#f43f5e', // 6 Rose
-        '#ef4444', // 7 Red
-        '#f97316', // 8 Orange
-        '#f59e0b', // 9 Amber
-        '#eab308', // 10 Yellow
-        '#84cc16', // 11 Lime
-        '#10b981', // 12 Emerald
-        '#14b8a6', // 13 Teal
+        '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', 
+        '#f43f5e', '#ef4444', '#f97316', '#f59e0b', '#eab308', 
+        '#84cc16', '#10b981', '#14b8a6'
     ];
     return colors[(val - 1) % colors.length];
 }
@@ -115,30 +105,21 @@ function getBlockColor(val) {
 // --- Classes ---
 class Block {
     constructor(c, r, val) {
-        this.c = c;
-        this.r = r;
-        this.val = val;
+        this.c = c; this.r = r; this.val = val;
         this.x = getTargetX(c);
-        // Start high up for spawn drop animation
         this.y = getTargetY(-1) - Math.random() * (H / 2); 
+        this.targetX = getTargetX(c);
         this.targetY = getTargetY(r);
         this.scale = 1;
-        this.punch = 0; // for jiggle effect
+        this.punch = 0; 
     }
 }
 
-// --- Visual Effects ---
 function spawnParticles(x, y, color, count) {
     for(let i=0; i<count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * 300 + 100;
-        particles.push({ 
-            x, y, 
-            vx: Math.cos(angle)*speed, 
-            vy: Math.sin(angle)*speed, 
-            life: 1, color, 
-            r: Math.random() * 5 + 2 
-        });
+        particles.push({ x, y, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 1, color, r: Math.random() * 4 + 2 });
     }
 }
 
@@ -147,7 +128,14 @@ function initGrid() {
     grid = Array(COLS).fill().map(() => Array(ROWS).fill(null));
     for (let c = 0; c < COLS; c++) {
         for (let r = 0; r < ROWS; r++) {
-            grid[c][r] = new Block(c, r, Math.floor(Math.random() * 4) + 1);
+            let val;
+            do {
+                val = Math.floor(Math.random() * 4) + 1;
+            } while (
+                (c >= 2 && grid[c-1][r].val === val && grid[c-2][r].val === val) ||
+                (r >= 2 && grid[c][r-1].val === val && grid[c][r-2].val === val)
+            );
+            grid[c][r] = new Block(c, r, val);
         }
     }
 }
@@ -159,44 +147,163 @@ function getRandomValue() {
             if(grid[c][r] && grid[c][r].val > maxV) maxV = grid[c][r].val;
         }
     }
-    
-    // We drop numbers slightly below the max
-    let minV = Math.max(1, maxV - 5);
+    let minV = Math.max(1, maxV - 4);
     let maxDrop = Math.max(1, maxV - 1);
-    
     return Math.floor(Math.random() * (maxDrop - minV + 1)) + minV;
 }
 
-function getConnected(c, r, targetVal, visited) {
-    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return [];
-    if (!grid[c][r] || grid[c][r].val !== targetVal) return [];
-    
-    const key = `${c},${r}`;
-    if (visited.has(key)) return [];
-    visited.add(key);
-    
-    let group = [grid[c][r]];
-    group = group.concat(getConnected(c+1, r, targetVal, visited));
-    group = group.concat(getConnected(c-1, r, targetVal, visited));
-    group = group.concat(getConnected(c, r+1, targetVal, visited));
-    group = group.concat(getConnected(c, r-1, targetVal, visited));
-    
-    return group;
+function swapInGrid(c1, r1, c2, r2) {
+    let t = grid[c1][r1]; grid[c1][r1] = grid[c2][r2]; grid[c2][r2] = t;
+    if (grid[c1][r1]) { grid[c1][r1].c = c1; grid[c1][r1].r = r1; grid[c1][r1].targetX = getTargetX(c1); grid[c1][r1].targetY = getTargetY(r1); }
+    if (grid[c2][r2]) { grid[c2][r2].c = c2; grid[c2][r2].r = r2; grid[c2][r2].targetX = getTargetX(c2); grid[c2][r2].targetY = getTargetY(r2); }
+}
+
+function hasAnyMatch() {
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS - 2; c++) {
+            if (grid[c][r] && grid[c+1][r] && grid[c+2][r] && 
+                grid[c][r].val === grid[c+1][r].val && grid[c+1][r].val === grid[c+2][r].val) return true;
+        }
+    }
+    for (let c = 0; c < COLS; c++) {
+        for (let r = 0; r < ROWS - 2; r++) {
+            if (grid[c][r] && grid[c][r+1] && grid[c][r+2] && 
+                grid[c][r].val === grid[c][r+1].val && grid[c][r+1].val === grid[c][r+2].val) return true;
+        }
+    }
+    return false;
 }
 
 function checkGameOver() {
-    // If ANY two adjacent blocks match, game is not over
-    for (let c = 0; c < COLS; c++) {
-        for (let r = 0; r < ROWS; r++) {
-            if (!grid[c][r]) continue;
-            let val = grid[c][r].val;
-            if (c < COLS-1 && grid[c+1][r] && grid[c+1][r].val === val) return false;
-            if (r < ROWS-1 && grid[c][r+1] && grid[c][r+1].val === val) return false;
+    for(let c=0; c<COLS; c++) {
+        for(let r=0; r<ROWS; r++) {
+            if (c < COLS - 1) {
+                swapInGrid(c, r, c+1, r); let has = hasAnyMatch(); swapInGrid(c, r, c+1, r);
+                if (has) return false;
+            }
+            if (r < ROWS - 1) {
+                swapInGrid(c, r, c, r+1); let has = hasAnyMatch(); swapInGrid(c, r, c, r+1);
+                if (has) return false;
+            }
         }
     }
     return true;
 }
 
+function processMatches(swapC = -1, swapR = -1) {
+    let lines = [];
+    
+    // Horizontal
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS - 2; c++) {
+            if (!grid[c][r]) continue;
+            let val = grid[c][r].val;
+            let matchLen = 1;
+            while(c + matchLen < COLS && grid[c+matchLen][r] && grid[c+matchLen][r].val === val) matchLen++;
+            
+            if (matchLen >= 3) {
+                let line = [];
+                for(let i=0; i<matchLen; i++) line.push({c: c+i, r: r});
+                lines.push(line);
+                c += matchLen - 1; 
+            }
+        }
+    }
+    
+    // Vertical
+    for (let c = 0; c < COLS; c++) {
+        for (let r = 0; r < ROWS - 2; r++) {
+            if (!grid[c][r]) continue;
+            let val = grid[c][r].val;
+            let matchLen = 1;
+            while(r + matchLen < ROWS && grid[c][r+matchLen] && grid[c][r+matchLen].val === val) matchLen++;
+            
+            if (matchLen >= 3) {
+                let line = [];
+                for(let i=0; i<matchLen; i++) line.push({c: c, r: r+i});
+                lines.push(line);
+                r += matchLen - 1;
+            }
+        }
+    }
+    
+    if (lines.length === 0) return false;
+    
+    AudioSys.merge(lines.length);
+    shakeCamera(lines.length * 3, 0.2);
+    
+    let toDestroy = new Set();
+    let toUpgrade = new Map(); 
+    
+    lines.forEach(line => {
+        let target = line[0];
+        const swapBlock = line.find(b => b.c === swapC && b.r === swapR);
+        if (swapBlock) target = swapBlock;
+        else target = line[Math.floor(line.length / 2)];
+        
+        let targetKey = `${target.c},${target.r}`;
+        toUpgrade.set(targetKey, grid[target.c][target.r]);
+        
+        line.forEach(b => {
+            let key = `${b.c},${b.r}`;
+            if (key !== targetKey) toDestroy.add(key);
+        });
+    });
+    
+    toUpgrade.forEach((block, key) => { if (toDestroy.has(key)) toDestroy.delete(key); });
+    
+    let scoreGain = 0;
+    toUpgrade.forEach((block, key) => {
+        block.val++;
+        block.scale = 1.4;
+        spawnParticles(block.targetX + CW/2, block.targetY + CH/2, '#ffffff', 10);
+        scoreGain += block.val * 50;
+    });
+    
+    toDestroy.forEach(key => {
+        let [c, r] = key.split(',').map(Number);
+        let b = grid[c][r];
+        if (b) {
+            spawnParticles(b.targetX + CW/2, b.targetY + CH/2, getBlockColor(b.val), 15);
+            grid[c][r] = null;
+        }
+    });
+    
+    score += scoreGain * lines.length; // Multiplier for combos!
+    updateHUD();
+    
+    toUpgrade.forEach((block) => {
+        floatingTexts.push({
+            x: block.targetX + CW/2, y: block.targetY, 
+            text: lines.length > 1 ? `COMBO x${lines.length}!` : `MERGE!`, 
+            life: 1.5, color: '#f8fafc', size: lines.length > 1 ? 24 : 16
+        });
+    });
+    
+    return true;
+}
+
+function applyGravity() {
+    for (let c = 0; c < COLS; c++) {
+        let writeRow = ROWS - 1;
+        for (let r = ROWS - 1; r >= 0; r--) {
+            if (grid[c][r]) {
+                if (writeRow !== r) {
+                    grid[c][writeRow] = grid[c][r];
+                    grid[c][r] = null;
+                    grid[c][writeRow].r = writeRow;
+                    grid[c][writeRow].targetY = getTargetY(writeRow);
+                }
+                writeRow--;
+            }
+        }
+        for (let r = writeRow; r >= 0; r--) {
+            grid[c][r] = new Block(c, r, getRandomValue());
+        }
+    }
+}
+
+// --- UI / Flow ---
 function updateHUD() {
     document.getElementById('scoreEl').innerText = score;
     document.getElementById('bestEl').innerText = bestScore;
@@ -214,13 +321,9 @@ function showMenu(isGameOver = false) {
         title.style.filter = 'drop-shadow(0 0 25px rgba(244,63,94,0.6))';
         desc.innerHTML = `Final Score: <span class="highlight-text">${score}</span>`;
         btn.innerText = 'PLAY AGAIN';
-        
-        if (score > bestScore) {
-            bestScore = score;
-            localStorage.setItem('neon_merge_best', bestScore);
-        }
+        if (score > bestScore) { bestScore = score; localStorage.setItem('neon_match_best', bestScore); }
     } else {
-        title.innerHTML = 'NEON<br>MERGE';
+        title.innerHTML = 'NEON<br>MATCH';
         title.style.background = 'linear-gradient(135deg, #22d3ee, #a855f7)';
         title.style.webkitBackgroundClip = 'text';
         title.style.filter = 'drop-shadow(0 0 25px rgba(168,85,247,0.4))';
@@ -235,19 +338,15 @@ document.getElementById('startBtn').addEventListener('click', () => {
     AudioSys.init();
     document.getElementById('menu').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
-    
-    score = 0;
-    updateHUD();
-    initGrid();
-    state = 'ANIMATING';
+    score = 0; updateHUD(); initGrid(); state = 'ANIMATING';
 });
 
-// --- Inputs ---
+// --- Inputs (Swipe to Swap) ---
+let dragStart = null;
+
 canvas.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    AudioSys.init();
-    
-    if (state !== 'PLAYING') return; // Lock input during falls
+    e.preventDefault(); AudioSys.init();
+    if (state !== 'PLAYING') return; 
     
     const rect = canvas.getBoundingClientRect();
     const touchX = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
@@ -257,96 +356,53 @@ canvas.addEventListener('pointerdown', e => {
     const r = Math.floor((touchY * (H / rect.height) - BOARD_TOP + PAD/2) / (CH + PAD));
     
     if (c >= 0 && c < COLS && r >= 0 && r < ROWS && grid[c][r]) {
-        handleBlockClick(c, r);
+        dragStart = {x: touchX * (W / rect.width), y: touchY * (H / rect.height), c, r};
     }
 });
 
-function handleBlockClick(c, r) {
-    const clickedBlock = grid[c][r];
-    const group = getConnected(c, r, clickedBlock.val, new Set());
+canvas.addEventListener('pointermove', e => {
+    e.preventDefault();
+    if (!dragStart || state !== 'PLAYING') return;
+    const rect = canvas.getBoundingClientRect();
+    const touchX = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+    const touchY = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
     
-    if (group.length >= 2) {
-        state = 'ANIMATING';
-        AudioSys.merge(group.length);
+    const dx = (touchX * (W / rect.width)) - dragStart.x;
+    const dy = (touchY * (H / rect.height)) - dragStart.y;
+    
+    const SWIPE_THRESH = CW * 0.4; // 40% of a block width to trigger swap
+    
+    if (Math.abs(dx) > SWIPE_THRESH || Math.abs(dy) > SWIPE_THRESH) {
+        let targetC = dragStart.c;
+        let targetR = dragStart.r;
         
-        if (group.length >= 4) shakeCamera(group.length, 0.2);
+        if (Math.abs(dx) > Math.abs(dy)) targetC += (dx > 0) ? 1 : -1;
+        else targetR += (dy > 0) ? 1 : -1;
         
-        let scoreGain = 0;
-        
-        // Remove connected blocks
-        group.forEach(b => {
-            if (b === clickedBlock) {
-                // The clicked block upgrades
-                b.val++;
-                b.scale = 1.4; // Pop effect
-                spawnParticles(b.x + CW/2, b.y + CH/2, '#ffffff', 10);
-            } else {
-                // Others are destroyed
-                grid[b.c][b.r] = null;
-                spawnParticles(b.x + CW/2, b.y + CH/2, getBlockColor(b.val), 20);
-                AudioSys.pop();
-            }
-            scoreGain += b.val * 10;
-        });
-        
-        // Massive combo bonus
-        const totalEarned = scoreGain * group.length;
-        score += totalEarned;
-        updateHUD();
-        
-        floatingTexts.push({
-            x: clickedBlock.x + CW/2, y: clickedBlock.y, 
-            text: `+${totalEarned}`, life: 1.5, 
-            color: '#f8fafc', size: group.length >= 4 ? 24 : 18
-        });
-        if (group.length >= 4) {
-            floatingTexts.push({
-                x: clickedBlock.x + CW/2, y: clickedBlock.y - 25, 
-                text: `${group.length} COMBO!`, life: 2, 
-                color: '#f43f5e', size: 16
+        if (targetC >= 0 && targetC < COLS && targetR >= 0 && targetR < ROWS) {
+            AudioSys.swap();
+            state = 'ANIMATING';
+            swapInGrid(dragStart.c, dragStart.r, targetC, targetR);
+            
+            actionQueue.push({
+                type: 'CHECK_SWAP',
+                c1: dragStart.c, r1: dragStart.r, c2: targetC, r2: targetR
             });
         }
-        
-        applyGravity();
-        
-    } else {
-        // Invalid move jiggle
-        clickedBlock.punch = 0.2;
-        AudioSys.error();
+        dragStart = null;
     }
-}
+});
 
-function applyGravity() {
-    for (let c = 0; c < COLS; c++) {
-        let writeRow = ROWS - 1;
-        // Shift blocks down
-        for (let r = ROWS - 1; r >= 0; r--) {
-            if (grid[c][r]) {
-                if (writeRow !== r) {
-                    grid[c][writeRow] = grid[c][r];
-                    grid[c][r] = null;
-                    grid[c][writeRow].r = writeRow;
-                    grid[c][writeRow].targetY = getTargetY(writeRow);
-                }
-                writeRow--;
-            }
-        }
-        // Drop new blocks
-        for (let r = writeRow; r >= 0; r--) {
-            grid[c][r] = new Block(c, r, getRandomValue());
-        }
-    }
-}
+canvas.addEventListener('pointerup', () => dragStart = null);
+canvas.addEventListener('pointerleave', () => dragStart = null);
+canvas.addEventListener('touchstart', e => e.preventDefault(), {passive:false});
+canvas.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
 
 // --- Game Loop ---
 function update(dt) {
     if (shakeTime > 0) { shakeTime -= dt; shakeIntensity *= 0.9; }
     
-    particles.forEach(p => { 
-        p.x += p.vx * dt; p.y += p.vy * dt; 
-        p.vy += 800 * dt; // Gravity 
-        p.life -= dt * 2; p.r *= 0.9; 
-    });
+    particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 800 * dt; p.life -= dt * 2; p.r *= 0.9; });
     particles = particles.filter(p => p.life > 0);
     
     floatingTexts.forEach(ft => { ft.y -= dt * 60; ft.life -= dt * 1.5; });
@@ -357,53 +413,63 @@ function update(dt) {
         for(let r=0; r<ROWS; r++) {
             let b = grid[c][r];
             if (!b) continue;
-            
             if (b.punch > 0) b.punch = Math.max(0, b.punch - dt * 3);
             
+            const dx = b.targetX - b.x;
             const dy = b.targetY - b.y;
-            if (Math.abs(dy) > 1) { 
-                // Gravity acceleration feel
-                b.y += dy * 12 * dt; 
-                allSettled = false; 
-            } else {
-                b.y = b.targetY;
-            }
             
-            if (b.scale > 1) { 
-                b.scale = Math.max(1, b.scale - 3 * dt); 
+            if (Math.abs(dx) > 1 || Math.abs(dy) > 1) { 
+                b.x += dx * 18 * dt; b.y += dy * 18 * dt; 
                 allSettled = false; 
-            } else if (b.scale < 1) {
-                b.scale = Math.min(1, b.scale + 3 * dt);
-                allSettled = false;
-            }
+            } else { b.x = b.targetX; b.y = b.targetY; }
+            
+            if (b.scale > 1) { b.scale = Math.max(1, b.scale - 3 * dt); allSettled = false; } 
+            else if (b.scale < 1) { b.scale = Math.min(1, b.scale + 3 * dt); allSettled = false; }
         }
     }
     
-    if (state === 'ANIMATING' && allSettled) {
-        state = 'PLAYING';
-        if (checkGameOver()) {
-            setTimeout(() => showMenu(true), 500); // Small delay before game over screen
+    if (allSettled && state === 'ANIMATING') {
+        if (actionQueue.length > 0) {
+            let action = actionQueue.shift();
+            if (action.type === 'CHECK_SWAP') {
+                let hasMatch = processMatches(action.c2, action.r2); // Prioritize block user moved
+                if (!hasMatch) hasMatch = processMatches(action.c1, action.r1); // Check the other swapped block
+                
+                if (hasMatch) {
+                    actionQueue.push({ type: 'APPLY_GRAVITY' });
+                } else {
+                    AudioSys.error();
+                    swapInGrid(action.c1, action.r1, action.c2, action.r2); // Swap back!
+                }
+            } else if (action.type === 'APPLY_GRAVITY') {
+                applyGravity();
+                actionQueue.push({ type: 'CHECK_BOARD' });
+            } else if (action.type === 'CHECK_BOARD') {
+                if (processMatches()) {
+                    actionQueue.push({ type: 'APPLY_GRAVITY' }); // Chain reactions!
+                } else {
+                    if (checkGameOver()) setTimeout(() => showMenu(true), 500);
+                    else state = 'PLAYING';
+                }
+            }
+        } else {
+            state = 'PLAYING';
         }
     }
 }
 
 function draw() {
     ctx.clearRect(0, 0, W, H);
-    
     ctx.save();
     if (shakeTime > 0) { ctx.translate((Math.random()-0.5)*shakeIntensity, (Math.random()-0.5)*shakeIntensity); }
     
-    // Draw Grid Background slots
     for (let c = 0; c < COLS; c++) {
         for (let r = 0; r < ROWS; r++) {
             ctx.fillStyle = 'rgba(255,255,255,0.02)';
-            ctx.beginPath();
-            ctx.roundRect(getTargetX(c), getTargetY(r), CW, CH, 14);
-            ctx.fill();
+            ctx.beginPath(); ctx.roundRect(getTargetX(c), getTargetY(r), CW, CH, 14); ctx.fill();
         }
     }
 
-    // Particles (behind blocks looks cleaner for this game)
     ctx.save(); ctx.globalCompositeOperation = 'screen';
     particles.forEach(p => { 
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); 
@@ -411,58 +477,42 @@ function draw() {
     });
     ctx.restore();
 
-    // Blocks
     for(let c=0; c<COLS; c++) {
         for(let r=0; r<ROWS; r++) {
             let b = grid[c][r];
             if (!b) continue;
             
-            ctx.save(); 
-            ctx.translate(b.x + CW/2, b.y + CH/2);
-            
-            // Jiggle effect
-            if (b.punch > 0) {
-                ctx.rotate(Math.sin(performance.now() * 0.05) * b.punch);
-            }
-            
+            ctx.save(); ctx.translate(b.x + CW/2, b.y + CH/2);
+            if (b.punch > 0) ctx.rotate(Math.sin(performance.now() * 0.05) * b.punch);
             ctx.scale(b.scale, b.scale);
             const color = getBlockColor(b.val);
             
-            // Block Body
             ctx.fillStyle = 'rgba(15, 23, 42, 0.95)'; 
             ctx.beginPath(); ctx.roundRect(-CW/2, -CH/2, CW, CH, 14); ctx.fill();
             
-            // Glass highlight top
             ctx.fillStyle = 'rgba(255,255,255,0.12)'; 
             ctx.beginPath(); ctx.roundRect(-CW/2, -CH/2, CW, CH/2.5, {tl: 14, tr: 14, bl: 0, br: 0}); ctx.fill();
             
-            // Neon Border
             ctx.strokeStyle = color; ctx.lineWidth = 3; 
             ctx.shadowColor = color; ctx.shadowBlur = 10;
             ctx.stroke(); ctx.shadowBlur = 0; 
             
-            // Inner color fill
             ctx.fillStyle = color; ctx.globalAlpha = 0.2;
             ctx.beginPath(); ctx.roundRect(-CW/2 + 3, -CH/2 + 3, CW - 6, CH - 6, 10); ctx.fill(); 
             ctx.globalAlpha = 1;
             
-            // Number Text
-            ctx.fillStyle = '#ffffff'; 
-            ctx.font = `900 ${Math.max(20, CW * 0.5)}px Outfit`;
+            ctx.fillStyle = '#ffffff'; ctx.font = `900 ${Math.max(20, CW * 0.45)}px Outfit`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; 
             ctx.shadowColor = color; ctx.shadowBlur = 8;
             ctx.fillText(b.val, 0, 2); 
-            
             ctx.restore();
         }
     }
 
-    // Floating Texts
     floatingTexts.forEach(ft => {
         ctx.save(); ctx.globalAlpha = Math.max(0, ft.life); 
-        ctx.fillStyle = ft.color || '#f8fafc';
-        ctx.font = `900 ${ft.size || 18}px Outfit`; ctx.textAlign = 'center'; 
-        ctx.shadowColor = '#000000'; ctx.shadowBlur = 6;
+        ctx.fillStyle = ft.color || '#f8fafc'; ctx.font = `900 ${ft.size || 18}px Outfit`; 
+        ctx.textAlign = 'center'; ctx.shadowColor = '#000000'; ctx.shadowBlur = 6;
         ctx.fillText(ft.text, ft.x, ft.y); ctx.restore();
     });
     
