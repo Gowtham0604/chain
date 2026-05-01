@@ -465,8 +465,8 @@ function draw() {
     
     for (let c = 0; c < COLS; c++) {
         for (let r = 0; r < ROWS; r++) {
-            ctx.fillStyle = 'rgba(255,255,255,0.02)';
-            ctx.beginPath(); ctx.roundRect(getTargetX(c), getTargetY(r), CW, CH, 14); ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.beginPath(); ctx.roundRect(getTargetX(c), getTargetY(r), CW, CH, 16); ctx.fill();
         }
     }
 
@@ -487,24 +487,22 @@ function draw() {
             ctx.scale(b.scale, b.scale);
             const color = getBlockColor(b.val);
             
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.95)'; 
-            ctx.beginPath(); ctx.roundRect(-CW/2, -CH/2, CW, CH, 14); ctx.fill();
+            ctx.fillStyle = color; 
+            ctx.beginPath(); ctx.roundRect(-CW/2, -CH/2, CW, CH, 16); ctx.fill();
             
-            ctx.fillStyle = 'rgba(255,255,255,0.12)'; 
-            ctx.beginPath(); ctx.roundRect(-CW/2, -CH/2, CW, CH/2.5, {tl: 14, tr: 14, bl: 0, br: 0}); ctx.fill();
+            // Smooth premium gradient overlay (no harsh lines)
+            const grad = ctx.createLinearGradient(0, -CH/2, 0, CH/2);
+            grad.addColorStop(0, 'rgba(255,255,255,0.25)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.15)');
+            ctx.fillStyle = grad;
+            ctx.fill();
             
-            ctx.strokeStyle = color; ctx.lineWidth = 3; 
-            ctx.shadowColor = color; ctx.shadowBlur = 10;
-            ctx.stroke(); ctx.shadowBlur = 0; 
-            
-            ctx.fillStyle = color; ctx.globalAlpha = 0.2;
-            ctx.beginPath(); ctx.roundRect(-CW/2 + 3, -CH/2 + 3, CW - 6, CH - 6, 10); ctx.fill(); 
-            ctx.globalAlpha = 1;
-            
+            // Number Text
             ctx.fillStyle = '#ffffff'; ctx.font = `900 ${Math.max(20, CW * 0.45)}px Outfit`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; 
-            ctx.shadowColor = color; ctx.shadowBlur = 8;
+            ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 4;
             ctx.fillText(b.val, 0, 2); 
+            ctx.shadowBlur = 0;
             ctx.restore();
         }
     }

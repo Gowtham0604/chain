@@ -1,12 +1,12 @@
 :root {
-  --bg-dark: #0a0a0f;
-  --panel-bg: rgba(15, 15, 20, 0.75);
-  --primary: #06b6d4; /* Cyan */
-  --primary-glow: rgba(6, 182, 212, 0.5);
-  --secondary: #a855f7; /* Purple */
+  --bg-dark: #0f172a; /* Slate 900 */
+  --panel-bg: rgba(30, 41, 59, 0.85);
+  --primary: #3b82f6; /* Blue */
+  --primary-glow: rgba(59, 130, 246, 0.4);
+  --secondary: #8b5cf6; /* Purple */
   --accent: #f43f5e; /* Rose */
   --text-main: #f8fafc;
-  --text-muted: #94a3b8;
+  --text-muted: #cbd5e1;
   --font-main: 'Outfit', sans-serif;
 }
 
@@ -14,7 +14,7 @@
 
 body {
   font-family: var(--font-main);
-  background: var(--bg-dark);
+  background: #020617; /* Very dark slate for outside bounds */
   color: var(--text-main);
   overflow: hidden;
   display: flex;
@@ -30,23 +30,23 @@ body {
   max-width: 440px;
   height: 100%;
   max-height: 900px;
-  background: #050508;
+  background: var(--bg-dark);
   overflow: hidden;
-  box-shadow: 0 0 50px rgba(0,0,0,0.8);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
 }
 
 @media (min-width: 768px) {
   #app {
-    border-radius: 30px;
+    border-radius: 24px;
     height: 85vh;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.06);
   }
 }
 
 .bg-gradient {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(30,27,75,0.6), #050508 70%);
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   z-index: 0;
 }
 
@@ -73,11 +73,11 @@ canvas {
 
 .hud-container.hidden { opacity: 0; pointer-events: none; }
 
-.stat-box { display: flex; flex-direction: column; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+.stat-box { display: flex; flex-direction: column; }
 .stat-box.right { align-items: flex-end; }
 .stat-box .label { font-size: 0.75rem; color: var(--text-muted); font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: -2px; }
-.stat-box .value { font-size: 2.8rem; font-weight: 900; line-height: 1; }
-.stat-box .value.highlight { color: var(--primary); text-shadow: 0 0 15px var(--primary-glow); }
+.stat-box .value { font-size: 2.5rem; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+.stat-box .value.highlight { color: var(--primary); }
 
 /* Menu */
 .menu-container {
@@ -88,11 +88,11 @@ canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 5, 10, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   padding: 2rem;
-  transition: opacity 0.5s ease, visibility 0.5s;
+  transition: opacity 0.4s ease, visibility 0.4s;
 }
 
 .menu-container.hidden {
@@ -100,14 +100,7 @@ canvas {
   visibility: hidden;
 }
 
-.glow-orb {
-  position: absolute;
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(168,85,247,0.15), transparent 70%);
-  border-radius: 50%;
-  z-index: -1;
-  animation: pulse 4s infinite alternate;
-}
+.glow-orb { display: none; }
 
 @keyframes pulse {
   0% { transform: scale(0.8); opacity: 0.5; }
@@ -115,16 +108,16 @@ canvas {
 }
 
 .game-title {
-  font-size: 4.5rem;
+  font-size: 4rem;
   font-weight: 900;
   line-height: 0.95;
   text-align: center;
-  background: linear-gradient(135deg, #22d3ee, #a855f7);
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.8rem;
-  filter: drop-shadow(0 0 25px rgba(168,85,247,0.4));
+  text-shadow: 0 4px 15px rgba(0,0,0,0.2);
   animation: float 6s ease-in-out infinite;
   letter-spacing: -1px;
 }
@@ -167,14 +160,14 @@ canvas {
 }
 
 .btn.primary {
-  background: linear-gradient(90deg, var(--primary), #3b82f6);
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
   color: white;
-  box-shadow: 0 8px 25px var(--primary-glow);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
 }
 
 .btn.primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(6, 182, 212, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
 }
 
 .btn.primary:active { transform: translateY(1px); }
