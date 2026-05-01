@@ -3,493 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Chain Blast</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Chain Blast | Premium Edition</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Outfit', 'sans-serif'] },
-        }
-      }
-    }
-  </script>
-  <style>
-    body {
-      font-family: 'Outfit', sans-serif;
-      background: #050505;
-      color: #fff;
-      touch-action: none;
-      -webkit-user-select: none;
-      user-select: none;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
-    }
-    input {
-      touch-action: auto;
-      user-select: text;
-      -webkit-user-select: text;
-    }
-    @keyframes pulse-glow {
-      0%, 100% { filter: drop-shadow(0 0 15px rgba(34,211,238,0.4)); }
-      50% { filter: drop-shadow(0 0 25px rgba(34,211,238,0.8)); }
-    }
-    .title-glow { animation: pulse-glow 3s infinite ease-in-out; }
-    
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="flex items-center justify-center min-h-[100dvh] w-screen">
-
-  <div id="app" class="relative w-full h-full max-w-[420px] max-h-[900px] bg-slate-950 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:rounded-[2rem] md:h-[85vh] md:border border-white/10 flex flex-col overflow-hidden">
+<body>
+  <div id="app">
+    <!-- Background elements -->
+    <div class="bg-gradient"></div>
     
-    <div id="hud" class="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-10 bg-gradient-to-b from-slate-950 via-slate-950/80 to-transparent pointer-events-none opacity-0 transition-opacity duration-500">
-       <div class="flex flex-col drop-shadow-md">
-         <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Score</span>
-         <span id="scoreEl" class="text-3xl font-black text-white leading-none">0</span>
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- HUD -->
+    <div id="hud" class="hud-container hidden">
+       <div class="stat-box">
+         <span class="label">SCORE</span>
+         <span id="scoreEl" class="value">0</span>
        </div>
-       <div class="flex flex-col items-end drop-shadow-md">
-         <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Wave</span>
-         <span id="waveEl" class="text-3xl font-black text-cyan-400 leading-none">1</span>
+       <div class="stat-box right">
+         <span class="label">WAVE</span>
+         <span id="waveEl" class="value highlight">1</span>
        </div>
     </div>
     
-    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
-    
-    <div id="menu" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-md p-6 transition-opacity duration-500">
-      <div class="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center z-[-1]">
-        <div class="w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.15)_0%,transparent_50%)] animate-[spin_10s_linear_infinite]"></div>
-      </div>
+    <!-- Main Menu & Game Over Screen -->
+    <div id="menu" class="menu-container">
+      <div class="glow-orb"></div>
       
-      <h1 id="menuTitle" class="text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-br from-cyan-300 via-cyan-400 to-purple-500 text-center title-glow">CHAIN<br>BLAST</h1>
-      <p id="menuDesc" class="text-slate-300 text-center mb-8 font-light leading-relaxed max-w-[280px]">Aim, shoot, and trigger massive <span class="text-purple-400 font-medium">chain reactions</span>!</p>
+      <h1 id="menuTitle" class="game-title">CHAIN<br>BLAST</h1>
+      <p id="menuDesc" class="game-desc">Aim, shoot, and trigger massive <span class="highlight-text">chain reactions</span>!</p>
       
-      <input type="text" id="nameInput" placeholder="Your name (optional)" class="w-full max-w-[260px] bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium text-center text-base" maxlength="12">
+      <input type="text" id="nameInput" placeholder="Enter Callsign" maxlength="12" autocomplete="off">
       
-      <button id="startBtn" class="w-full max-w-[260px] bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all active:scale-95 mb-8 tracking-wide">
-        PLAY NOW
-      </button>
+      <button id="startBtn" class="btn primary">INITIALIZE</button>
+      <button id="toggleAudioBtn" class="btn secondary">🔊 AUDIO: ON</button>
 
-      <div class="w-full max-w-[260px] bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col backdrop-blur-sm">
-        <div class="bg-white/5 px-4 py-2 border-b border-white/10 flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
-          <span>Player</span>
-          <span>Score</span>
+      <div class="leaderboard-panel">
+        <div class="lb-header">
+          <span>PILOT</span>
+          <span>SCORE</span>
         </div>
-        <div id="leaderboard" class="flex flex-col text-sm max-h-[160px] overflow-y-auto custom-scrollbar"></div>
+        <div id="leaderboard" class="lb-content custom-scrollbar">
+            <!-- Populated by JS -->
+        </div>
       </div>
     </div>
   </div>
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const app = document.getElementById('app');
-
-    const COLS = 6;
-    const PAD = 6;
-    let W, H, CW, CH, BOARD_TOP, CANNON_Y, MAX_ROWS;
-    let dpr = window.devicePixelRatio || 1;
-
-    let state = 'MENU';
-    let score = 0, wave = 1, ballsToShoot = 1;
-    let cannonX = 0;
-    let blocks = [], balls = [], particles = [], shockwaves = [], floatingTexts = [];
-    let isDragging = false, aimX = 0, aimY = 0;
-    let firstBallLanded = false;
-    let shootInterval = null;
-
-    let lb = JSON.parse(localStorage.getItem('cb_lb') || '[]');
-    let pname = '';
-    document.getElementById('nameInput').value = localStorage.getItem('cb_name') || '';
-
-    let lastW = 0;
-    function resize() {
-      const rect = app.getBoundingClientRect();
-      if (lastW === rect.width && Math.abs(H - rect.height) < 100) return;
-      lastW = rect.width;
-      
-      W = rect.width; H = rect.height;
-      canvas.width = W * dpr; canvas.height = H * dpr;
-      ctx.scale(dpr, dpr);
-      
-      CW = (W - PAD * (COLS + 1)) / COLS;
-      CH = CW;
-      BOARD_TOP = 90;
-      CANNON_Y = H - 60;
-      MAX_ROWS = Math.floor((CANNON_Y - BOARD_TOP - 40) / (CH + PAD));
-      
-      blocks.forEach(b => {
-        b.x = PAD + b.col * (CW + PAD);
-        b.targetY = getTargetY(b.row);
-        if (state !== 'ANIMATING') b.y = b.targetY;
-      });
-      
-      if (state === 'MENU') cannonX = W/2;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    function getTargetY(row) { return BOARD_TOP + row * (CH + PAD); }
-    function getBlockColor(hp) {
-      const colors = ['#22d3ee', '#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#fb7185', '#facc15', '#4ade80'];
-      return colors[(hp - 1) % colors.length];
-    }
-
-    class Ball {
-      constructor(x, y, vx, vy) {
-        this.x = x; this.y = y;
-        this.vx = vx; this.vy = vy;
-        this.r = 6;
-        this.active = true;
-        this.returning = false;
-        this.trail = [];
-      }
-      recall() {
-        if (!this.returning) {
-          this.returning = true;
-          this.y = CANNON_Y; 
-          this.vx = 0; this.vy = 0;
-        }
-      }
-      update(dt) {
-        if (!this.active) return;
-        
-        this.trail.push({x: this.x, y: this.y});
-        if (this.trail.length > 5) this.trail.shift();
-
-        if (this.returning) {
-          const dx = cannonX - this.x;
-          const speed = 1500 * dt;
-          if (Math.abs(dx) <= speed) {
-            this.x = cannonX;
-            this.active = false;
-          } else {
-            this.x += Math.sign(dx) * speed;
-          }
-          return;
-        }
-
-        const steps = 3;
-        const subDt = dt / steps;
-        
-        for(let s=0; s<steps; s++) {
-          let nx = this.x + this.vx * subDt;
-          let ny = this.y + this.vy * subDt;
-          
-          if (nx - this.r < 0) { nx = this.r; this.vx *= -1; }
-          if (nx + this.r > W) { nx = W - this.r; this.vx *= -1; }
-          if (ny - this.r < 0) { ny = this.r; this.vy *= -1; }
-          
-          if (ny + this.r > CANNON_Y) {
-            this.y = CANNON_Y; this.vy = 0; this.vx = 0; this.returning = true;
-            if (!firstBallLanded) {
-              firstBallLanded = true;
-              cannonX = Math.max(this.r, Math.min(W - this.r, nx));
-            }
-            break;
-          }
-
-          let hit = false;
-          for (let b of blocks) {
-            if (b.exploding || b.hp <= 0 || b.markedForDeletion) continue;
-            
-            let testX = nx, testY = ny;
-            if (nx < b.x) testX = b.x; else if (nx > b.x + CW) testX = b.x + CW;
-            if (ny < b.y) testY = b.y; else if (ny > b.y + CH) testY = b.y + CH;
-            
-            const distX = nx - testX, distY = ny - testY;
-            const distance = Math.sqrt(distX*distX + distY*distY);
-            
-            if (distance <= this.r) {
-              hit = true;
-              if (Math.abs(distX) > Math.abs(distY)) {
-                this.vx *= -1; nx += Math.sign(distX||1) * (this.r - distance + 1); 
-                this.vy += (Math.random() - 0.5) * 50; 
-              } else {
-                this.vy *= -1; ny += Math.sign(distY||1) * (this.r - distance + 1); 
-                this.vx += (Math.random() - 0.5) * 50; 
-              }
-              const spd = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
-              this.vx = (this.vx / spd) * 800;
-              this.vy = (this.vy / spd) * 800;
-              
-              b.hp--; score++; updateHUD(); b.punch = 0.2;
-              if (b.hp <= 0) triggerExplosion(b, 0);
-              break;
-            }
-          }
-          if (!this.returning) { this.x = nx; this.y = ny; }
-        }
-      }
-      draw(ctx) {
-        if (!this.active && !this.returning && state === 'SHOOTING') return;
-        if (this.trail.length > 1) {
-          ctx.beginPath(); ctx.moveTo(this.trail[0].x, this.trail[0].y);
-          for(let i=1; i<this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
-          ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)'; ctx.lineWidth = this.r * 1.5; ctx.lineCap = 'round'; ctx.stroke();
-        }
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-        ctx.fillStyle = '#22d3ee'; ctx.shadowColor = '#06b6d4'; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
-      }
-    }
-
-    function triggerExplosion(b, chainLevel) {
-      if (b.exploding) return;
-      b.exploding = true; b.markedForDeletion = true;
-      
-      const addScore = b.maxHp * 10 * (chainLevel + 1);
-      score += addScore; updateHUD();
-      floatingTexts.push({x: b.x + CW/2, y: b.y, text: `+${addScore}`, life: 1});
-
-      const color = getBlockColor(b.maxHp);
-      for(let i=0; i<15; i++) {
-        const angle = Math.random() * Math.PI * 2, speed = 100 + Math.random() * 200;
-        particles.push({ x: b.x + CW/2, y: b.y + CH/2, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1, color: color, r: 2 + Math.random() * 4 });
-      }
-      shockwaves.push({x: b.x + CW/2, y: b.y + CH/2, r: 10, maxR: CW * 2.5, life: 1, color: color});
-
-      blocks.forEach(nb => {
-        if (nb.exploding || nb.markedForDeletion) return;
-        const dist = Math.sqrt(Math.pow((nb.x+CW/2)-(b.x+CW/2), 2) + Math.pow((nb.y+CH/2)-(b.y+CH/2), 2));
-        if (dist < CW * 1.6) {
-          setTimeout(() => { if (state !== 'MENU') triggerExplosion(nb, chainLevel + 1); }, 80 + Math.random() * 40);
-        }
-      });
-      blocks = blocks.filter(x => !x.markedForDeletion);
-    }
-
-    function spawnRow() {
-      const numBlocks = Math.floor(Math.random() * 4) + 2;
-      const cols = Array.from({length: COLS}, (_, i) => i).sort(() => Math.random() - 0.5);
-      for(let i=0; i<numBlocks; i++) {
-        const hp = wave + Math.floor(Math.random() * (wave * 0.5));
-        blocks.push({
-          col: cols[i], row: 0, x: PAD + cols[i] * (CW + PAD), y: -CH, targetY: getTargetY(0),
-          hp: Math.max(1, hp), maxHp: Math.max(1, hp), exploding: false, scale: 0, punch: 0
-        });
-      }
-    }
-
-    function updateHUD() {
-      document.getElementById('scoreEl').innerText = score;
-      document.getElementById('waveEl').innerText = wave;
-    }
-
-    function renderLeaderboard() {
-      const lbEl = document.getElementById('leaderboard');
-      if (lb.length === 0) { lbEl.innerHTML = '<div class="text-center text-slate-500 py-4 text-xs">No scores yet. Be the first!</div>'; return; }
-      lbEl.innerHTML = lb.map((entry, i) => `
-        <div class="flex justify-between px-4 py-3 border-b border-white/5 ${entry.name===pname && entry.score===score && state==='MENU' ? 'bg-cyan-500/20' : ''}">
-          <div class="flex gap-3"><span class="text-slate-500 w-4 font-bold">${i+1}</span><span class="font-medium text-slate-200">${entry.name || 'Anonymous'}</span></div>
-          <span class="font-bold text-cyan-400">${entry.score}</span>
-        </div>
-      `).join('');
-    }
-
-    function showMenu(isGameOver = false) {
-      const menu = document.getElementById('menu'), title = document.getElementById('menuTitle');
-      const desc = document.getElementById('menuDesc'), btn = document.getElementById('startBtn');
-      if (isGameOver) {
-        title.innerHTML = 'GAME OVER';
-        title.className = 'text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-red-600 text-center drop-shadow-[0_0_15px_rgba(244,63,94,0.5)]';
-        desc.innerHTML = `You reached Wave <span class="text-white font-bold">${wave}</span> and scored <span class="text-white font-bold">${score}</span>.`;
-        btn.innerText = 'PLAY AGAIN';
-        pname = document.getElementById('nameInput').value.trim();
-        localStorage.setItem('cb_name', pname);
-        lb.push({name: pname || 'You', score}); lb.sort((a,b) => b.score - a.score); lb = lb.slice(0, 10);
-        localStorage.setItem('cb_lb', JSON.stringify(lb));
-      }
-      renderLeaderboard();
-      menu.classList.remove('hidden', 'opacity-0');
-      document.getElementById('hud').classList.add('opacity-0');
-    }
-
-    document.getElementById('startBtn').addEventListener('click', () => {
-      pname = document.getElementById('nameInput').value.trim();
-      localStorage.setItem('cb_name', pname);
-      document.getElementById('menu').classList.add('opacity-0');
-      setTimeout(() => document.getElementById('menu').classList.add('hidden'), 500);
-      document.getElementById('hud').classList.remove('opacity-0');
-      startGame();
-    });
-
-    function startGame() {
-      score = 0; wave = 1; ballsToShoot = 1; blocks = []; balls = []; particles = []; shockwaves = []; floatingTexts = [];
-      cannonX = W / 2; firstBallLanded = false;
-      if (shootInterval) clearInterval(shootInterval);
-      updateHUD(); spawnRow();
-      for(let i=0; i<2; i++) {
-        blocks.forEach(b => { b.row++; b.targetY = getTargetY(b.row); b.y = b.targetY; b.scale = 1; });
-        spawnRow();
-      }
-      blocks.forEach(b => { b.scale = 1; b.y = b.targetY; });
-      state = 'AIMING';
-    }
-
-    function shootBalls(nx, ny) {
-      state = 'SHOOTING'; firstBallLanded = false; let launched = 0;
-      floatingTexts.push({x: W/2, y: CANNON_Y - 40, text: 'Tap to recall', life: 2});
-      shootInterval = setInterval(() => {
-        balls.push(new Ball(cannonX, CANNON_Y, nx * 800, ny * 800));
-        launched++;
-        if (launched >= ballsToShoot) clearInterval(shootInterval);
-      }, 100);
-    }
-
-    canvas.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      if (state === 'SHOOTING') {
-        balls.forEach(b => b.recall());
-        if (!firstBallLanded) { firstBallLanded = true; cannonX = W/2; }
-        if (shootInterval) clearInterval(shootInterval);
-        return;
-      }
-      if (state !== 'AIMING') return;
-      const rect = canvas.getBoundingClientRect();
-      aimX = (e.clientX - rect.left) * (W / rect.width); aimY = (e.clientY - rect.top) * (H / rect.height);
-      isDragging = true;
-    });
-
-    canvas.addEventListener('pointermove', e => {
-      e.preventDefault();
-      if (!isDragging || state !== 'AIMING') return;
-      const rect = canvas.getBoundingClientRect();
-      aimX = (e.clientX - rect.left) * (W / rect.width); aimY = (e.clientY - rect.top) * (H / rect.height);
-    });
-
-    canvas.addEventListener('pointerup', e => {
-      e.preventDefault();
-      if (!isDragging || state !== 'AIMING') return;
-      isDragging = false;
-      const dx = aimX - cannonX, dy = aimY - CANNON_Y, dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < 20 || dy > -20) return;
-      shootBalls(dx/dist, dy/dist);
-    });
-    
-    canvas.addEventListener('pointerleave', () => isDragging = false);
-
-    function update(dt) {
-      blocks.forEach(b => { if (b.punch > 0) b.punch = Math.max(0, b.punch - dt * 2); });
-      particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 400 * dt; p.life -= dt * 1.5; p.r *= 0.95; });
-      particles = particles.filter(p => p.life > 0);
-      shockwaves.forEach(sw => { sw.r += (sw.maxR - sw.r) * dt * 8; sw.life -= dt * 2.5; });
-      shockwaves = shockwaves.filter(sw => sw.life > 0);
-      floatingTexts.forEach(ft => { ft.y -= dt * 60; ft.life -= dt * 1.2; });
-      floatingTexts = floatingTexts.filter(ft => ft.life > 0);
-
-      if (state === 'AIMING' && blocks.length === 0) {
-        wave++; ballsToShoot++; score += 1000 * wave; updateHUD(); spawnRow(); state = 'ANIMATING';
-        floatingTexts.push({x: W/2, y: H/2, text: 'CLEAR BONUS!', life: 2});
-      }
-
-      if (state === 'SHOOTING') {
-        if (balls.length > 0 && balls.every(b => !b.active)) {
-          balls = []; wave++; ballsToShoot++; updateHUD();
-          blocks.forEach(b => { b.row++; b.targetY = getTargetY(b.row); });
-          spawnRow(); state = 'ANIMATING';
-        }
-      }
-
-      if (state === 'ANIMATING') {
-        let allSettled = true;
-        blocks.forEach(b => {
-          const dy = b.targetY - b.y;
-          if (Math.abs(dy) > 0.5) { b.y += dy * 10 * dt; allSettled = false; } else b.y = b.targetY;
-          if (b.scale < 1) { b.scale = Math.min(1, b.scale + 4 * dt); allSettled = false; }
-        });
-        if (allSettled) {
-          if (blocks.some(b => b.row >= MAX_ROWS)) { state = 'MENU'; showMenu(true); } else state = 'AIMING';
-        }
-      }
-
-      balls.forEach(b => b.update(dt));
-    }
-
-    function draw() {
-      ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, W, H);
-      
-      ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1; ctx.beginPath();
-      for(let i=0; i<=COLS; i++) { const x = PAD + i * (CW + PAD); ctx.moveTo(x, BOARD_TOP); ctx.lineTo(x, CANNON_Y); }
-      ctx.stroke();
-
-      const dangerY = getTargetY(MAX_ROWS - 1);
-      ctx.setLineDash([10, 10]); ctx.strokeStyle = 'rgba(244, 63, 94, 0.2)'; ctx.beginPath(); 
-      ctx.moveTo(0, dangerY + CH); ctx.lineTo(W, dangerY + CH); ctx.stroke(); ctx.setLineDash([]);
-
-      ctx.save(); ctx.globalCompositeOperation = 'lighter';
-      shockwaves.forEach(sw => { ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2); ctx.strokeStyle = sw.color; ctx.globalAlpha = sw.life; ctx.lineWidth = 3; ctx.stroke(); });
-      particles.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.globalAlpha = p.life; ctx.fill(); });
-      ctx.restore();
-
-      blocks.forEach(b => {
-        if (b.exploding || b.markedForDeletion) return;
-        ctx.save(); ctx.translate(b.x + CW/2, b.y + CH/2);
-        const s = b.scale - b.punch; ctx.scale(s, s);
-        const color = getBlockColor(b.maxHp);
-        
-        ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.roundRect(-CW/2, -CH/2, CW, CH, 12); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.roundRect(-CW/2, -CH/2, CW, CH/2, {tl: 12, tr: 12, bl: 0, br: 0}); ctx.fill();
-        ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.stroke();
-        
-        ctx.fillStyle = color; ctx.globalAlpha = 0.1 + 0.5 * Math.max(0, b.hp / b.maxHp);
-        ctx.beginPath(); ctx.roundRect(-CW/2 + 2, -CH/2 + 2, CW - 4, CH - 4, 10); ctx.fill(); ctx.globalAlpha = 1;
-        
-        ctx.fillStyle = '#ffffff'; ctx.font = `800 ${Math.max(12, CW * 0.4)}px Outfit`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.shadowColor = color; ctx.shadowBlur = 8;
-        ctx.fillText(Math.ceil(b.hp), 0, 2); ctx.restore();
-      });
-
-      balls.forEach(b => b.draw(ctx));
-
-      ctx.fillStyle = '#22d3ee'; ctx.beginPath(); ctx.arc(cannonX, CANNON_Y, 8, 0, Math.PI * 2);
-      ctx.shadowColor = '#06b6d4'; ctx.shadowBlur = 15; ctx.fill(); ctx.shadowBlur = 0;
-
-      if (state === 'AIMING' || state === 'ANIMATING') {
-        ctx.fillStyle = '#cbd5e1'; ctx.font = '600 12px Outfit'; ctx.textAlign = 'center';
-        ctx.fillText(`x${ballsToShoot}`, cannonX, CANNON_Y + 24);
-      }
-
-      if (state === 'AIMING' && isDragging) {
-        const dx = aimX - cannonX, dy = aimY - CANNON_Y, dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist > 20 && dy < -20) {
-          let px = cannonX, py = CANNON_Y, pvx = dx/dist, pvy = dy/dist;
-          ctx.save(); ctx.strokeStyle = 'rgba(34, 211, 238, 0.5)'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
-          ctx.beginPath(); ctx.moveTo(px, py);
-          for(let i=0; i<2; i++) {
-            let tHit = Infinity;
-            if (pvy < 0) tHit = Math.min(tHit, (6 - py) / pvy); // 6 is ball radius approx
-            if (pvx < 0) tHit = Math.min(tHit, (6 - px) / pvx);
-            if (pvx > 0) tHit = Math.min(tHit, (W - 6 - px) / pvx);
-            if (tHit === Infinity) break;
-            px += pvx * tHit; py += pvy * tHit; ctx.lineTo(px, py);
-            if (py <= 6) pvy *= -1; else pvx *= -1;
-          }
-          ctx.stroke(); ctx.restore();
-        }
-      }
-
-      floatingTexts.forEach(ft => {
-        ctx.save(); ctx.globalAlpha = Math.max(0, ft.life); ctx.fillStyle = '#f8fafc';
-        ctx.font = '800 16px Outfit'; ctx.textAlign = 'center'; ctx.shadowColor = '#000000'; ctx.shadowBlur = 4;
-        ctx.fillText(ft.text, ft.x, ft.y); ctx.restore();
-      });
-    }
-
-    let lastTime = 0;
-    requestAnimationFrame(function loop(timestamp) {
-      requestAnimationFrame(loop);
-      if (!lastTime) { lastTime = timestamp; return; }
-      let dt = (timestamp - lastTime) / 1000;
-      lastTime = timestamp;
-      if (dt > 0.1) dt = 0.1;
-      update(dt); draw();
-    });
-    
-    renderLeaderboard();
-  </script>
+  <script src="game.js"></script>
 </body>
 </html>
