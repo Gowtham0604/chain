@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Chain Blast | Premium Edition</title>
+  <title>Neon Merge | Premium Puzzle</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -22,8 +22,8 @@
          <span id="scoreEl" class="value">0</span>
        </div>
        <div class="stat-box right">
-         <span class="label">WAVE</span>
-         <span id="waveEl" class="value highlight">1</span>
+         <span class="label">BEST</span>
+         <span id="bestEl" class="value highlight">0</span>
        </div>
     </div>
     
@@ -31,23 +31,11 @@
     <div id="menu" class="menu-container">
       <div class="glow-orb"></div>
       
-      <h1 id="menuTitle" class="game-title">CHAIN<br>BLAST</h1>
-      <p id="menuDesc" class="game-desc">Aim, shoot, and trigger massive <span class="highlight-text">chain reactions</span>!</p>
+      <h1 id="menuTitle" class="game-title">NEON<br>MERGE</h1>
+      <p id="menuDesc" class="game-desc">Tap groups of matching numbers to merge them and trigger <span class="highlight-text">massive combos</span>!</p>
       
-      <input type="text" id="nameInput" placeholder="Enter Callsign" maxlength="12" autocomplete="off">
-      
-      <button id="startBtn" class="btn primary">INITIALIZE</button>
+      <button id="startBtn" class="btn primary">PLAY NOW</button>
       <button id="toggleAudioBtn" class="btn secondary">🔊 AUDIO: ON</button>
-
-      <div class="leaderboard-panel">
-        <div class="lb-header">
-          <span>PILOT</span>
-          <span>SCORE</span>
-        </div>
-        <div id="leaderboard" class="lb-content custom-scrollbar">
-            <!-- Populated by JS -->
-        </div>
-      </div>
     </div>
   </div>
 
