@@ -50,7 +50,8 @@ const PAD = 8;
 let W, H, CW, CH, BOARD_TOP, BOARD_LEFT;
 let dpr = window.devicePixelRatio || 1;
 
-let state = 'MENU'; // MENU, PLAYING, ANIMATING
+let state = 'MENU'; // MENU, PLAYING, ANIMATING, PAUSED
+let previousState = 'PLAYING';
 let score = 0;
 let bestScore = parseInt(localStorage.getItem('neon_match_best')) || 0;
 
@@ -324,21 +325,52 @@ function showMenu(isGameOver = false) {
         if (score > bestScore) { bestScore = score; localStorage.setItem('neon_match_best', bestScore); }
     } else {
         title.innerHTML = 'NEON<br>MATCH';
-        title.style.background = 'linear-gradient(135deg, #22d3ee, #a855f7)';
+        title.style.background = 'linear-gradient(135deg, #38bdf8, #818cf8)';
         title.style.webkitBackgroundClip = 'text';
-        title.style.filter = 'drop-shadow(0 0 25px rgba(168,85,247,0.4))';
+        title.style.filter = 'drop-shadow(0 0 25px rgba(56,189,248,0.4))';
+        desc.innerHTML = `Swipe to match 3 or more numbers to merge them into higher values!`;
+        btn.innerText = 'PLAY NOW';
     }
     
     updateHUD();
     menu.classList.remove('hidden');
     document.getElementById('hud').classList.add('hidden');
+    document.getElementById('pauseMenu').classList.add('hidden');
 }
 
-document.getElementById('startBtn').addEventListener('click', () => {
+function startGame() {
     AudioSys.init();
     document.getElementById('menu').classList.add('hidden');
+    document.getElementById('pauseMenu').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
     score = 0; updateHUD(); initGrid(); state = 'ANIMATING';
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+
+// --- Pause Menu Listeners ---
+document.getElementById('pauseBtn').addEventListener('click', () => {
+    if (state === 'PAUSED' || state === 'MENU') return;
+    AudioSys.init();
+    previousState = state;
+    state = 'PAUSED';
+    document.getElementById('pauseMenu').classList.remove('hidden');
+    document.getElementById('hud').classList.add('hidden');
+});
+
+document.getElementById('resumeBtn').addEventListener('click', () => {
+    AudioSys.init();
+    state = previousState;
+    document.getElementById('pauseMenu').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+});
+
+document.getElementById('restartBtn').addEventListener('click', startGame);
+
+document.getElementById('quitBtn').addEventListener('click', () => {
+    AudioSys.init();
+    state = 'MENU';
+    showMenu(false);
 });
 
 // --- Inputs (Swipe to Swap) ---
@@ -400,6 +432,8 @@ canvas.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
 
 // --- Game Loop ---
 function update(dt) {
+    if (state === 'PAUSED' || state === 'MENU') return;
+    
     if (shakeTime > 0) { shakeTime -= dt; shakeIntensity *= 0.9; }
     
     particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 800 * dt; p.life -= dt * 2; p.r *= 0.9; });

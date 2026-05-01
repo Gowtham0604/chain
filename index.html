@@ -17,14 +17,25 @@
     
     <!-- HUD -->
     <div id="hud" class="hud-container hidden">
-       <div class="stat-box">
-         <span class="label">SCORE</span>
-         <span id="scoreEl" class="value">0</span>
+       <div class="hud-stats">
+         <div class="stat-box">
+           <span class="label">SCORE</span>
+           <span id="scoreEl" class="value">0</span>
+         </div>
+         <div class="stat-box right">
+           <span class="label">BEST</span>
+           <span id="bestEl" class="value highlight">0</span>
+         </div>
        </div>
-       <div class="stat-box right">
-         <span class="label">BEST</span>
-         <span id="bestEl" class="value highlight">0</span>
-       </div>
+       <button id="pauseBtn" class="icon-btn" aria-label="Pause">⏸</button>
+    </div>
+    
+    <!-- Pause Menu -->
+    <div id="pauseMenu" class="menu-container hidden">
+      <h2 class="game-title" style="font-size: 3rem; margin-bottom: 2rem;">PAUSED</h2>
+      <button id="resumeBtn" class="btn primary">RESUME</button>
+      <button id="restartBtn" class="btn secondary">RESTART</button>
+      <button id="quitBtn" class="btn secondary">QUIT TO MENU</button>
     </div>
     
     <!-- Main Menu & Game Over Screen -->
