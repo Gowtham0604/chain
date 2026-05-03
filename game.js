@@ -96,9 +96,19 @@ function getTargetY(row) { return BOARD_TOP + row * (CH + PAD); }
 
 function getBlockColor(val) {
     const colors = [
-        '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', 
-        '#f43f5e', '#ef4444', '#f97316', '#f59e0b', '#eab308', 
-        '#84cc16', '#10b981', '#14b8a6'
+        '#FF1E56', // Vivid Red
+        '#00D2FC', // Bright Cyan
+        '#FFD500', // Golden Yellow
+        '#32E0C4', // Turquoise/Mint
+        '#A100FF', // Electric Purple
+        '#FF6B00', // Tangy Orange
+        '#FF007F', // Hot Pink
+        '#39FF14', // Neon Green
+        '#F9ED69', // Lemon Yellow
+        '#F08A5D', // Coral
+        '#B83B5E', // Berry Red
+        '#6A2C70', // Deep Violet
+        '#00B8A9'  // Bright Teal
     ];
     return colors[(val - 1) % colors.length];
 }
@@ -317,17 +327,17 @@ function showMenu(isGameOver = false) {
     if (isGameOver) {
         AudioSys.gameOver();
         title.innerHTML = 'OUT OF<br>MOVES';
-        title.style.background = 'linear-gradient(135deg, #f43f5e, #fb923c)';
+        title.style.background = 'linear-gradient(135deg, #FF1E56, #FF6B00)';
         title.style.webkitBackgroundClip = 'text';
-        title.style.filter = 'drop-shadow(0 0 25px rgba(244,63,94,0.6))';
+        title.style.filter = 'drop-shadow(0 0 25px rgba(255,30,86,0.6))';
         desc.innerHTML = `Final Score: <span class="highlight-text">${score}</span>`;
         btn.innerText = 'PLAY AGAIN';
         if (score > bestScore) { bestScore = score; localStorage.setItem('neon_match_best', bestScore); }
     } else {
         title.innerHTML = 'NEON<br>MATCH';
-        title.style.background = 'linear-gradient(135deg, #38bdf8, #818cf8)';
+        title.style.background = 'linear-gradient(135deg, #FF1E56, #FFD500, #00D2FC, #A100FF)';
         title.style.webkitBackgroundClip = 'text';
-        title.style.filter = 'drop-shadow(0 0 25px rgba(56,189,248,0.4))';
+        title.style.filter = 'drop-shadow(0 0 25px rgba(255,213,0,0.5))';
         desc.innerHTML = `Swipe to match 3 or more numbers to merge them into higher values!`;
         btn.innerText = 'PLAY NOW';
     }
@@ -521,20 +531,43 @@ function draw() {
             ctx.scale(b.scale, b.scale);
             const color = getBlockColor(b.val);
             
+            // Glossy Candy Block Base
             ctx.fillStyle = color; 
-            ctx.beginPath(); ctx.roundRect(-CW/2, -CH/2, CW, CH, 16); ctx.fill();
+            ctx.beginPath(); ctx.roundRect(-CW/2, -CH/2, CW, CH, 18); ctx.fill();
             
-            // Smooth premium gradient overlay (no harsh lines)
-            const grad = ctx.createLinearGradient(0, -CH/2, 0, CH/2);
-            grad.addColorStop(0, 'rgba(255,255,255,0.25)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.15)');
+            // Rich candy-like radial gradient overlay for depth
+            const grad = ctx.createRadialGradient(0, -CH/4, 0, 0, 0, CW);
+            grad.addColorStop(0, 'rgba(255,255,255,0.6)');
+            grad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.3)');
             ctx.fillStyle = grad;
             ctx.fill();
             
-            // Number Text
-            ctx.fillStyle = '#ffffff'; ctx.font = `900 ${Math.max(20, CW * 0.45)}px Outfit`;
+            // Top glossy highlight reflection
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath(); 
+            ctx.ellipse(0, -CH/2 + CH*0.15, CW*0.35, CH*0.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Bottom shadow inner rim
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath(); 
+            ctx.roundRect(-CW/2 + CW*0.1, CH/2 - CH*0.2, CW*0.8, CH*0.15, 8);
+            ctx.fill();
+            
+            // Number Text with high contrast outline
+            const fontSize = Math.max(20, CW * 0.45);
+            ctx.font = `900 ${fontSize}px Outfit`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; 
-            ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 4;
+            
+            // Text Stroke for better readability like Candy Crush
+            ctx.lineWidth = Math.max(3, fontSize * 0.1);
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+            ctx.strokeText(b.val, 0, 2);
+            
+            // Text Fill
+            ctx.fillStyle = '#ffffff'; 
+            ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 6;
             ctx.fillText(b.val, 0, 2); 
             ctx.shadowBlur = 0;
             ctx.restore();
