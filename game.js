@@ -152,15 +152,28 @@ function initGrid() {
 }
 
 function getRandomValue() {
+    let counts = {};
     let maxV = 1;
     for(let c=0; c<COLS; c++) {
         for(let r=0; r<ROWS; r++) {
-            if(grid[c][r] && grid[c][r].val > maxV) maxV = grid[c][r].val;
+            if(grid[c][r]) {
+                let v = grid[c][r].val;
+                counts[v] = (counts[v] || 0) + 1;
+                if (v > maxV) maxV = v;
+            }
         }
     }
-    let minV = Math.max(1, maxV - 4);
-    let maxDrop = Math.max(1, maxV - 1);
-    return Math.floor(Math.random() * (maxDrop - minV + 1)) + minV;
+    
+    let activeValues = Object.keys(counts).map(Number);
+    if (activeValues.length === 0) return Math.floor(Math.random() * 4) + 1;
+
+    // Remove the highest value from the drop pool to ensure it must be earned, 
+    // UNLESS it's the only value on the board.
+    if (activeValues.length > 1) {
+        activeValues = activeValues.filter(v => v !== maxV);
+    }
+    
+    return activeValues[Math.floor(Math.random() * activeValues.length)];
 }
 
 function swapInGrid(c1, r1, c2, r2) {
@@ -198,6 +211,59 @@ function checkGameOver() {
             }
         }
     }
+    return true;
+}
+
+function shuffleBoard() {
+    let blocks = [];
+    for(let c=0; c<COLS; c++) {
+        for(let r=0; r<ROWS; r++) {
+            if(grid[c][r]) blocks.push(grid[c][r]);
+        }
+    }
+    
+    let valid = false;
+    let attempts = 0;
+    while (!valid && attempts < 100) {
+        for (let i = blocks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+        }
+        
+        let idx = 0;
+        for(let c=0; c<COLS; c++) {
+            for(let r=0; r<ROWS; r++) {
+                grid[c][r] = blocks[idx++];
+                grid[c][r].c = c; grid[c][r].r = r;
+            }
+        }
+        
+        if (!hasAnyMatch() && !checkGameOver()) {
+            valid = true;
+        }
+        attempts++;
+    }
+    
+    if (!valid) return false; 
+    
+    for(let c=0; c<COLS; c++) {
+        for(let r=0; r<ROWS; r++) {
+            let b = grid[c][r];
+            b.targetX = getTargetX(c);
+            b.targetY = getTargetY(r);
+            b.x = W/2; 
+            b.y = H/2;
+        }
+    }
+    
+    floatingTexts.push({
+        x: W/2, y: H/2, 
+        text: `SHUFFLE!`, 
+        life: 2.0, color: '#00D2FC', size: 36
+    });
+    
+    AudioSys.swap();
+    state = 'ANIMATING';
     return true;
 }
 
@@ -492,8 +558,15 @@ function update(dt) {
                 if (processMatches()) {
                     actionQueue.push({ type: 'APPLY_GRAVITY' }); // Chain reactions!
                 } else {
-                    if (checkGameOver()) setTimeout(() => showMenu(true), 500);
-                    else state = 'PLAYING';
+                    if (checkGameOver()) {
+                        if (shuffleBoard()) {
+                            // Automatically shuffles and returns state to ANIMATING
+                        } else {
+                            setTimeout(() => showMenu(true), 500);
+                        }
+                    } else {
+                        state = 'PLAYING';
+                    }
                 }
             }
         } else {
